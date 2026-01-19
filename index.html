@@ -3,33 +3,39 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Anagram Game</title>
+<title>Scrabble</title>
 <style>
     body {
-        font-family: Comfortaa, sans-serif;
+        font-family: Arial, sans-serif;
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
+        justify-content: flex-start;
         min-height: 100vh;
         background: #f0f0f0;
+        padding: 20px;
     }
     h1 {
         margin-bottom: 10px;
     }
-    input {
+    input, button {
         padding: 5px;
         font-size: 16px;
     }
     button {
-        padding: 5px 10px;
-        font-size: 16px;
-        margin-left: 5px;
         cursor: pointer;
+        margin-left: 5px;
     }
     p {
-        font-size: 18px;
+        font-size: 16px;
+        margin-top: 5px;
+    }
+    #difficultyLabel {
         margin-top: 10px;
+        font-weight: bold;
+    }
+    #difficultyContainer {
+        margin: 10px 0;
     }
 </style>
 </head>
@@ -38,54 +44,54 @@
 <h1 id="prompt"></h1>
 <input id="guess" autofocus>
 <div style="margin-top:10px;">
-    <button onclick="checkGuess()">Submit</button>
-    <button onclick="giveUp()">Give Up</button>
+    <button onclick="checkGuess()">submit</button>
+    <button onclick="giveUp()">give up</button>
 </div>
 <p id="result"></p>
 <p id="attempts"></p>
+<p id="answersInfo"></p>
+
+<div id="difficultyContainer">
+    <label for="difficultySlider">difficulty:</label>
+    <input type="range" id="difficultySlider" min="1" max="34506" value="34506">
+    <span id="difficultyLabel">impossible</span>
+    <button onclick="updateDifficulty()">update difficulty</button>
+</div>
 
 <script>
 let anagrams = {};
-let wordData = {}; // Store extra info like probability
+let wordData = {};
+let allKeys = [];
 let weightedKeys = [];
 let currentPrompt = null;
 let maxTries = 3;
 let attemptsLeft = maxTries;
+let difficultyMax = 34506;
 
-// Load JSON from GitHub Pages
+// Load JSON
 fetch("words.json")
   .then(res => res.json())
   .then(data => {
-
     data.forEach(entry => {
       const { alphagram, probability, word } = entry;
 
-      // Build alphagram → words[]
-      if (!anagrams[alphagram]) {
-        anagrams[alphagram] = [];
-      }
+      if (!anagrams[alphagram]) anagrams[alphagram] = [];
       anagrams[alphagram].push(word);
 
-      // Store probability info
       if (!wordData[alphagram]) wordData[alphagram] = {};
       wordData[alphagram][word] = probability;
 
-      // Difficulty control: lower probability → easier → appears more often
-      const weight = Math.max(1, 7 - probability);
-      for (let i = 0; i < weight; i++) {
-        weightedKeys.push(alphagram);
-      }
+      allKeys.push(alphagram);
     });
-
-    shuffle(weightedKeys);
+    applyDifficulty();
     nextWord();
   })
   .catch(err => {
-    document.getElementById("prompt").innerText =
-      "Failed to load words.json";
+    document.getElementById("prompt").innerText = "failed to load words.json";
     console.error(err);
   });
 
+// Shuffle function
 function shuffle(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -93,68 +99,108 @@ function shuffle(arr) {
   }
 }
 
+// Difficulty labels
+function getDifficultyLabel(value) {
+  if (value < 5_000) return "very easy";
+  if (value < 10_000) return "easy";
+  if (value < 20_000) return "medium";
+  if (value < 30_000) return "hard";
+  if (value < 34_000) return "very hard";
+  return "impossible";
+}
+
+// Apply difficulty filter
+function applyDifficulty() {
+  difficultyMax = parseInt(document.getElementById("difficultySlider").value);
+  document.getElementById("difficultyLabel").innerText = getDifficultyLabel(difficultyMax);
+
+  weightedKeys = [];
+
+  allKeys.forEach(alphagram => {
+    // Only include words under difficultyMax
+    const filteredWords = anagrams[alphagram].filter(word => wordData[alphagram][word] <= difficultyMax);
+    if (filteredWords.length > 0) {
+      const weight = Math.max(1, 7 - Math.min(...filteredWords.map(w => wordData[alphagram][w])));
+      for (let i = 0; i < weight; i++) weightedKeys.push(alphagram);
+    }
+  });
+
+  shuffle(weightedKeys);
+}
+
+function updateDifficulty() {
+  applyDifficulty();
+  nextWord();
+}
+
+// Next word
 function nextWord() {
   if (weightedKeys.length === 0) {
-    document.getElementById("prompt").innerText = "No more words!";
+    document.getElementById("prompt").innerText = "mo more words how the FUCK did you reach here omg";
     document.getElementById("guess").style.display = "none";
     document.querySelectorAll("button").forEach(b => b.style.display = "none");
     document.getElementById("attempts").innerText = "";
+    document.getElementById("answersInfo").innerText = "";
     return;
   }
 
   currentPrompt = weightedKeys.pop();
   attemptsLeft = maxTries;
 
-  document.getElementById("prompt").innerText =
-    "Guess a word for: " + currentPrompt;
-
+  document.getElementById("prompt").innerText = "guess a word for " + currentPrompt;
   document.getElementById("result").innerText = "";
   document.getElementById("guess").value = "";
+  document.getElementById("answersInfo").innerText = "";
   document.getElementById("guess").focus();
   updateAttempts();
 }
 
+// Attempts
 function updateAttempts() {
-  document.getElementById("attempts").innerText = `Attempts left: ${attemptsLeft}`;
+  document.getElementById("attempts").innerText = `attempts left: ${attemptsLeft}`;
 }
 
+// Show answers with probability
 function displayAnswers() {
-  const answers = anagrams[currentPrompt].map(word => {
-    return `${word} (probability: ${wordData[currentPrompt][word]})`;
-  });
-  return answers.join(", ");
+  const filteredWords = anagrams[currentPrompt].filter(word => wordData[currentPrompt][word] <= difficultyMax);
+  document.getElementById("answersInfo").innerText = 
+    `Answers (${filteredWords.length}): ` + 
+    filteredWords.map(word => `${word} (prob: ${wordData[currentPrompt][word]})`).join(", ");
 }
 
+// Check guess
 function checkGuess() {
   const guess = document.getElementById("guess").value.toUpperCase();
+  const validWords = anagrams[currentPrompt].filter(w => wordData[currentPrompt][w] <= difficultyMax);
 
-  if (anagrams[currentPrompt].includes(guess)) {
-    document.getElementById("result").innerText = "correct!";
+  if (validWords.includes(guess)) {
+    document.getElementById("result").innerText = "ding ding ding correct!";
     setTimeout(nextWord, 1000);
   } else {
     attemptsLeft--;
     if (attemptsLeft > 0) {
-      document.getElementById("result").innerText = "wrong lol try again";
+      document.getElementById("result").innerText = "WRONG!?!?!?";
       updateAttempts();
       document.getElementById("guess").value = "";
       document.getElementById("guess").focus();
     } else {
-      document.getElementById("result").innerText = `out of tries!1!11! answers: ${displayAnswers()}`;
+      document.getElementById("result").innerText = `out of tries..`;
+      displayAnswers();
       setTimeout(nextWord, 3000);
     }
   }
 }
 
+// Give up
 function giveUp() {
-  document.getElementById("result").innerText = `you gave up lmao, answers: ${displayAnswers()}`;
+  document.getElementById("result").innerText = "you gave up skull emoji!!";
+  displayAnswers();
   setTimeout(nextWord, 3000);
 }
 
-// Support Enter key
+// Enter key
 document.getElementById("guess").addEventListener("keydown", function(e) {
-  if (e.key === "Enter") {
-    checkGuess();
-  }
+  if (e.key === "Enter") checkGuess();
 });
 </script>
 
