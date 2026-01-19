@@ -6,7 +6,7 @@
 <title>Anagram Game</title>
 <style>
     body {
-        font-family: Arial, sans-serif;
+        font-family: Comfortaa, sans-serif;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -37,13 +37,20 @@
 
 <h1 id="prompt"></h1>
 <input id="guess" autofocus>
-<button onclick="checkGuess()">Submit</button>
+<div style="margin-top:10px;">
+    <button onclick="checkGuess()">Submit</button>
+    <button onclick="giveUp()">Give Up</button>
+</div>
 <p id="result"></p>
+<p id="attempts"></p>
 
 <script>
 let anagrams = {};
+let wordData = {}; // Store extra info like probability
 let weightedKeys = [];
 let currentPrompt = null;
+let maxTries = 3;
+let attemptsLeft = maxTries;
 
 // Load JSON from GitHub Pages
 fetch("words.json")
@@ -59,8 +66,11 @@ fetch("words.json")
       }
       anagrams[alphagram].push(word);
 
-      // Difficulty control:
-      // Lower probability = easier = appears more often
+      // Store probability info
+      if (!wordData[alphagram]) wordData[alphagram] = {};
+      wordData[alphagram][word] = probability;
+
+      // Difficulty control: lower probability → easier → appears more often
       const weight = Math.max(1, 7 - probability);
       for (let i = 0; i < weight; i++) {
         weightedKeys.push(alphagram);
@@ -87,11 +97,13 @@ function nextWord() {
   if (weightedKeys.length === 0) {
     document.getElementById("prompt").innerText = "No more words!";
     document.getElementById("guess").style.display = "none";
-    document.querySelector("button").style.display = "none";
+    document.querySelectorAll("button").forEach(b => b.style.display = "none");
+    document.getElementById("attempts").innerText = "";
     return;
   }
 
   currentPrompt = weightedKeys.pop();
+  attemptsLeft = maxTries;
 
   document.getElementById("prompt").innerText =
     "Guess a word for: " + currentPrompt;
@@ -99,21 +111,52 @@ function nextWord() {
   document.getElementById("result").innerText = "";
   document.getElementById("guess").value = "";
   document.getElementById("guess").focus();
+  updateAttempts();
+}
+
+function updateAttempts() {
+  document.getElementById("attempts").innerText = `Attempts left: ${attemptsLeft}`;
+}
+
+function displayAnswers() {
+  const answers = anagrams[currentPrompt].map(word => {
+    return `${word} (probability: ${wordData[currentPrompt][word]})`;
+  });
+  return answers.join(", ");
 }
 
 function checkGuess() {
   const guess = document.getElementById("guess").value.toUpperCase();
 
   if (anagrams[currentPrompt].includes(guess)) {
-    document.getElementById("result").innerText = "✅ Correct!";
+    document.getElementById("result").innerText = "correct!";
+    setTimeout(nextWord, 1000);
   } else {
-    document.getElementById("result").innerText = "❌ Wrong!";
+    attemptsLeft--;
+    if (attemptsLeft > 0) {
+      document.getElementById("result").innerText = "wrong lol try again";
+      updateAttempts();
+      document.getElementById("guess").value = "";
+      document.getElementById("guess").focus();
+    } else {
+      document.getElementById("result").innerText = `out of tries!1!11! answers: ${displayAnswers()}`;
+      setTimeout(nextWord, 3000);
+    }
   }
-
-  setTimeout(nextWord, 1000);
 }
-</script>
 
+function giveUp() {
+  document.getElementById("result").innerText = `you gave up lmao, answers: ${displayAnswers()}`;
+  setTimeout(nextWord, 3000);
+}
+
+// Support Enter key
+document.getElementById("guess").addEventListener("keydown", function(e) {
+  if (e.key === "Enter") {
+    checkGuess();
+  }
+});
+</script>
 
 </body>
 </html>
