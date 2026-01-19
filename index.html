@@ -41,12 +41,13 @@ input:focus {
 }
 
 button {
-    padding: 10px 20px;
+    font-family: 'Comfortaa', cursive; /* ensures button text matches page */
+    padding: 10px 15px;
     font-size: 16px;
-    border-radius: 20px;
+    border-radius: 12px;
     border: none;
     cursor: pointer;
-    margin-left: 5px;
+    margin: 5px 5px 5px 0;
     background: #FFD3B6;
     color: #fff;
     font-weight: bold;
@@ -75,25 +76,12 @@ p {
     color: #6C5B7B; /* pastel purple */
 }
 
-#difficultyContainer {
-    margin: 15px 0;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-#difficultySlider {
-    cursor: pointer;
-    accent-color: #FF6F91; /* pastel pink for slider */
-}
-
 #answersInfo {
     color: #355C7D; /* pastel blue */
     margin-top: 10px;
     font-weight: 500;
 }
 </style>
-
 </head>
 <body>
 
@@ -107,11 +95,16 @@ p {
 <p id="attempts"></p>
 <p id="answersInfo"></p>
 
+<!-- Fixed difficulty buttons -->
 <div id="difficultyContainer">
-    <label for="difficultySlider">difficulty:</label>
-    <input type="range" id="difficultySlider" min="1" max="34506" value="34506">
+    <span>difficulty:</span>
+    <button onclick="setDifficulty(5000)">Very Easy</button>
+    <button onclick="setDifficulty(10000)">Easy</button>
+    <button onclick="setDifficulty(20000)">Medium</button>
+    <button onclick="setDifficulty(30000)">Hard</button>
+    <button onclick="setDifficulty(34000)">Very Hard</button>
+    <button onclick="setDifficulty(34506)">Impossible</button>
     <span id="difficultyLabel">impossible</span>
-    <button onclick="updateDifficulty()">update difficulty</button>
 </div>
 
 <script>
@@ -123,6 +116,7 @@ let currentPrompt = null;
 let maxTries = 3;
 let attemptsLeft = maxTries;
 let difficultyMax = 34506;
+let waitingForNext = false;
 
 // Load JSON
 fetch("words.json")
@@ -157,23 +151,27 @@ function shuffle(arr) {
 
 // Difficulty labels
 function getDifficultyLabel(value) {
-  if (value < 5_000) return "very easy";
-  if (value < 10_000) return "easy";
-  if (value < 20_000) return "medium";
-  if (value < 30_000) return "hard";
-  if (value < 34_000) return "very hard";
+  if (value < 5000) return "very easy";
+  if (value < 10000) return "easy";
+  if (value < 20000) return "medium";
+  if (value < 30000) return "hard";
+  if (value < 34000) return "very hard";
   return "impossible";
+}
+
+// Set difficulty from button
+function setDifficulty(value) {
+    difficultyMax = value;
+    document.getElementById("difficultyLabel").innerText = getDifficultyLabel(difficultyMax);
+    applyDifficulty();
+    nextWord();
 }
 
 // Apply difficulty filter
 function applyDifficulty() {
-  difficultyMax = parseInt(document.getElementById("difficultySlider").value);
-  document.getElementById("difficultyLabel").innerText = getDifficultyLabel(difficultyMax);
-
   weightedKeys = [];
 
   allKeys.forEach(alphagram => {
-    // Only include words under difficultyMax
     const filteredWords = anagrams[alphagram].filter(word => wordData[alphagram][word] <= difficultyMax);
     if (filteredWords.length > 0) {
       const weight = Math.max(1, 7 - Math.min(...filteredWords.map(w => wordData[alphagram][w])));
@@ -182,11 +180,6 @@ function applyDifficulty() {
   });
 
   shuffle(weightedKeys);
-}
-
-function updateDifficulty() {
-  applyDifficulty();
-  nextWord();
 }
 
 // Next word
@@ -202,11 +195,13 @@ function nextWord() {
 
   currentPrompt = weightedKeys.pop();
   attemptsLeft = maxTries;
+  waitingForNext = false;
 
   document.getElementById("prompt").innerText = "guess a word for " + currentPrompt;
   document.getElementById("result").innerText = "";
   document.getElementById("guess").value = "";
   document.getElementById("answersInfo").innerText = "";
+  document.getElementById("guess").style.display = "inline";
   document.getElementById("guess").focus();
   updateAttempts();
 }
@@ -226,6 +221,12 @@ function displayAnswers() {
 
 // Check guess
 function checkGuess() {
+  if (waitingForNext) {
+    waitingForNext = false;
+    nextWord();
+    return;
+  }
+
   const guess = document.getElementById("guess").value.toUpperCase();
   const validWords = anagrams[currentPrompt].filter(w => wordData[currentPrompt][w] <= difficultyMax);
 
@@ -242,7 +243,9 @@ function checkGuess() {
     } else {
       document.getElementById("result").innerText = `out of tries..`;
       displayAnswers();
-      setTimeout(nextWord, 3000);
+      waitingForNext = true;
+      document.getElementById("guess").value = "";
+      document.getElementById("guess").focus();
     }
   }
 }
@@ -251,7 +254,9 @@ function checkGuess() {
 function giveUp() {
   document.getElementById("result").innerText = "you gave up skull emoji!!";
   displayAnswers();
-  setTimeout(nextWord, 3000);
+  waitingForNext = true;
+  document.getElementById("guess").value = "";
+  document.getElementById("guess").focus();
 }
 
 // Enter key
