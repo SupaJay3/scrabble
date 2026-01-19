@@ -179,7 +179,6 @@ function getDifficultyLabel(value) {
   return "impossible";
 }
 
-// Set difficulty from button
 function setDifficulty(value) {
     difficultyMax = value;
     document.getElementById("difficultyLabel").innerText = getDifficultyLabel(difficultyMax);
@@ -187,13 +186,15 @@ function setDifficulty(value) {
     nextWord();
 }
 
-// Apply difficulty filter
 function applyDifficulty() {
+  // Clear old weightedKeys
   weightedKeys = [];
 
   allKeys.forEach(alphagram => {
+    // Only include words under the current difficulty
     const filteredWords = anagrams[alphagram].filter(word => wordData[alphagram][word] <= difficultyMax);
     if (filteredWords.length > 0) {
+      // Add the alphagram once per valid word (or apply weighting)
       const weight = Math.max(1, 7 - Math.min(...filteredWords.map(w => wordData[alphagram][w])));
       for (let i = 0; i < weight; i++) weightedKeys.push(alphagram);
     }
