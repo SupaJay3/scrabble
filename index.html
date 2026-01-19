@@ -41,43 +41,79 @@
 <p id="result"></p>
 
 <script>
-const anagrams = {
-    "AEINORT": ["NOTAIRE", "OTARINE"],
-    "AEEIORT": ["ETAERIO"],
-    "ADEINOR": ["ANEROID"]
-};
+let anagrams = {};
+let weightedKeys = [];
+let currentPrompt = null;
 
-// Shuffle keys
-let keys = Object.keys(anagrams);
-keys = keys.sort(() => Math.random() - 0.5);
+// Load JSON from GitHub Pages
+fetch("words.json")
+  .then(res => res.json())
+  .then(data => {
+
+    data.forEach(entry => {
+      const { alphagram, probability, word } = entry;
+
+      // Build alphagram → words[]
+      if (!anagrams[alphagram]) {
+        anagrams[alphagram] = [];
+      }
+      anagrams[alphagram].push(word);
+
+      // Difficulty control:
+      // Lower probability = easier = appears more often
+      const weight = Math.max(1, 7 - probability);
+      for (let i = 0; i < weight; i++) {
+        weightedKeys.push(alphagram);
+      }
+    });
+
+    shuffle(weightedKeys);
+    nextWord();
+  })
+  .catch(err => {
+    document.getElementById("prompt").innerText =
+      "Failed to load words.json";
+    console.error(err);
+  });
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
 
 function nextWord() {
-    if (keys.length === 0) {
-        document.getElementById("prompt").innerText = "No more words!";
-        document.getElementById("guess").style.display = "none";
-        document.querySelector("button").style.display = "none";
-        return;
-    }
-    window.currentPrompt = keys.pop();
-    document.getElementById("prompt").innerText = "Guess a word for: " + window.currentPrompt;
-    document.getElementById("result").innerText = "";
-    document.getElementById("guess").value = "";
-    document.getElementById("guess").focus();
+  if (weightedKeys.length === 0) {
+    document.getElementById("prompt").innerText = "No more words!";
+    document.getElementById("guess").style.display = "none";
+    document.querySelector("button").style.display = "none";
+    return;
+  }
+
+  currentPrompt = weightedKeys.pop();
+
+  document.getElementById("prompt").innerText =
+    "Guess a word for: " + currentPrompt;
+
+  document.getElementById("result").innerText = "";
+  document.getElementById("guess").value = "";
+  document.getElementById("guess").focus();
 }
 
 function checkGuess() {
-    const guess = document.getElementById("guess").value.toUpperCase();
-    if (anagrams[window.currentPrompt].includes(guess)) {
-        document.getElementById("result").innerText = "✅ Correct!";
-    } else {
-        document.getElementById("result").innerText = "❌ Wrong!";
-    }
-    setTimeout(nextWord, 1000); // Automatically move to next word after 1s
-}
+  const guess = document.getElementById("guess").value.toUpperCase();
 
-// Start the game
-nextWord();
+  if (anagrams[currentPrompt].includes(guess)) {
+    document.getElementById("result").innerText = "✅ Correct!";
+  } else {
+    document.getElementById("result").innerText = "❌ Wrong!";
+  }
+
+  setTimeout(nextWord, 1000);
+}
 </script>
+
 
 </body>
 </html>
