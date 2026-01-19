@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anagram Game</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        background: #f0f0f0;
+    }
+    h1 {
+        margin-bottom: 10px;
+    }
+    input {
+        padding: 5px;
+        font-size: 16px;
+    }
+    button {
+        padding: 5px 10px;
+        font-size: 16px;
+        margin-left: 5px;
+        cursor: pointer;
+    }
+    p {
+        font-size: 18px;
+        margin-top: 10px;
+    }
+</style>
+</head>
+<body>
+
+<h1 id="prompt"></h1>
+<input id="guess" autofocus>
+<button onclick="checkGuess()">Submit</button>
+<p id="result"></p>
+
+<script>
+const anagrams = {
+    "AEINORT": ["NOTAIRE", "OTARINE"],
+    "AEEIORT": ["ETAERIO"],
+    "ADEINOR": ["ANEROID"]
+};
+
+// Shuffle keys
+let keys = Object.keys(anagrams);
+keys = keys.sort(() => Math.random() - 0.5);
+
+function nextWord() {
+    if (keys.length === 0) {
+        document.getElementById("prompt").innerText = "No more words!";
+        document.getElementById("guess").style.display = "none";
+        document.querySelector("button").style.display = "none";
+        return;
+    }
+    window.currentPrompt = keys.pop();
+    document.getElementById("prompt").innerText = "Guess a word for: " + window.currentPrompt;
+    document.getElementById("result").innerText = "";
+    document.getElementById("guess").value = "";
+    document.getElementById("guess").focus();
+}
+
+function checkGuess() {
+    const guess = document.getElementById("guess").value.toUpperCase();
+    if (anagrams[window.currentPrompt].includes(guess)) {
+        document.getElementById("result").innerText = "✅ Correct!";
+    } else {
+        document.getElementById("result").innerText = "❌ Wrong!";
+    }
+    setTimeout(nextWord, 1000); // Automatically move to next word after 1s
+}
+
+// Start the game
+nextWord();
+</script>
+
+</body>
+</html>
