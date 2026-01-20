@@ -104,7 +104,7 @@ function setDifficulty(name) {
     currentDifficulty = difficulties[name];
     document.getElementById("currentDiff").textContent =
         `Difficulty: ${name.toUpperCase()} (min: ${currentDifficulty.min})`;
-    generatePuzzle(); // 🔥 instant reroll
+    generatePuzzle();
 }
 
 function generatePuzzle() {
