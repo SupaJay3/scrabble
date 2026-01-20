@@ -65,12 +65,12 @@ small {
 <hr>
 
 <div class="difficulty">
-    <button onclick="setDifficulty('veryeasy')">Very Easy<br><small>0 – 5000</small></button>
-    <button onclick="setDifficulty('easy')">Easy<br><small>5001 – 10000</small></button>
-    <button onclick="setDifficulty('medium')">Medium<br><small>10001 – 20000</small></button>
-    <button onclick="setDifficulty('hard')">Hard<br><small>20001 – 30000</small></button>
-    <button onclick="setDifficulty('veryhard')">Very Hard<br><small>30001 – 34000</small></button>
-    <button onclick="setDifficulty('impossible')">Impossible<br><small>34001 – 34506</small></button>
+    <button onclick="setDifficulty('veryeasy')">Very Easy<br><small>min: 0</small></button>
+    <button onclick="setDifficulty('easy')">Easy<br><small>min: 5001</small></button>
+    <button onclick="setDifficulty('medium')">Medium<br><small>min: 10001</small></button>
+    <button onclick="setDifficulty('hard')">Hard<br><small>min: 20001</small></button>
+    <button onclick="setDifficulty('veryhard')">Very Hard<br><small>min: 30001</small></button>
+    <button onclick="setDifficulty('impossible')">Impossible<br><small>min: 34001</small></button>
 </div>
 
 <p id="currentDiff"></p>
@@ -83,12 +83,12 @@ let currentSet = null;
 let attemptsLeft = 2;
 
 const difficulties = {
-    veryeasy: { min: 0, max: 5000 },
-    easy: { min: 5001, max: 10000 },
-    medium: { min: 10001, max: 20000 },
-    hard: { min: 20001, max: 30000 },
-    veryhard: { min: 30001, max: 34000 },
-    impossible: { min: 34001, max: 34506 }
+    veryeasy: { min: 0 },
+    easy: { min: 5001 },
+    medium: { min: 10001 },
+    hard: { min: 20001 },
+    veryhard: { min: 30001 },
+    impossible: { min: 34001 }
 };
 
 let currentDifficulty = difficulties.veryeasy;
@@ -103,7 +103,7 @@ fetch("words.json?v=" + Date.now())
 function setDifficulty(name) {
     currentDifficulty = difficulties[name];
     document.getElementById("currentDiff").textContent =
-        `Difficulty: ${name.toUpperCase()} (${currentDifficulty.min}–${currentDifficulty.max})`;
+        `Difficulty: ${name.toUpperCase()} (min: ${currentDifficulty.min})`;
     generatePuzzle(); // 🔥 instant reroll
 }
 
@@ -121,12 +121,12 @@ function generatePuzzle() {
 
     const validSets = Object.values(grouped).filter(set => {
         const probs = set.map(w => w.probability);
-        return Math.min(...probs) >= currentDifficulty.min &&
-               Math.max(...probs) <= currentDifficulty.max;
+        return Math.min(...probs) >= currentDifficulty.min;
     });
 
     if (validSets.length === 0) {
-        document.getElementById("prompt").textContent = "No words in this range 😭";
+        document.getElementById("prompt").textContent = "No words in this difficulty 😭";
+        currentSet = null;
         return;
     }
 
