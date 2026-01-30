@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Anagram Game</title>
+<title>no</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
 
@@ -177,7 +177,7 @@ const difficulties = {
 
 let currentDifficulty = difficulties.veryeasy;
 
-fetch("words.json?v=" + Date.now())
+fetch("words.json")
     .then(r => r.json())
     .then(data => {
         words = data;
